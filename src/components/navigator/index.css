@@ -1,0 +1,17 @@
+.title {
+  width: 400px;
+  height: 63px;
+  padding: 0;
+  margin: 0;
+  border-width: 0;
+  border-color: transparent;
+  font: 22px Consolas;
+  font-weight: 700;
+}
+
+.publish {
+  position: relative;
+  top: 15px;
+  right: 20px;
+  float: right;
+}
