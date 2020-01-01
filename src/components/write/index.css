@@ -1,5 +1,5 @@
 .caret {
-  position: relative; /* 子元素绝对定位设置的属性 */
+  position: relative;
 }
 
 .writing {
@@ -25,4 +25,31 @@
   height: 20px;
   border-left: 3px solid #000;
   z-index: 99;
+}
+
+.text {
+  width: 100%;
+  height: 20.8px;
+  margin: 0;
+  padding: 0;
+  border-width: 0;
+  font-family: Consolas;
+  color: #000;
+  white-space: pre;
+}
+
+.get-length {
+  display: inline-block;
+  font-family: Consolas;
+  white-space: pre;
+}
+
+
+
+
+
+
+::selection {
+  color: #000;
+  background-color: #d5e8fc;
 }
