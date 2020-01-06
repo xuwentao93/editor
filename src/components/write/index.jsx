@@ -73,11 +73,36 @@ export default function Write() { // conclusion: keyEvent 事件一定先于 onC
       const left = window.getComputedStyle(caret.current).left
       const width = utils.getStringLength(value) // 字符串在页面的长度.
       const textWidth = utils.getStringLength(textList[line]) // 当前行的长度.
-      if (width + textWidth > parseFloat(window.getComputedStyle(write.current).width)) { // 处理文本溢出.
-        const str = ''
-        for (let i = line; i < textList.length; i++) {
-
+      const wholeWidth = parseFloat(window.getComputedStyle(write.current).width) - 60 // 编辑框宽度
+      if (width + textWidth > wholeWidth) { // 处理文本溢出.
+        console.log(1)
+        let str = textList[line].slice(0, X) + value + textList[line].slice(X)
+        let changeLine = 1
+        for (let i = line + 1; i < textList.length; i++) {
+          str += i
+          changeLine++
+          if (textList[i][textList[i].length - 1] === '\n') break
         }
+        // const strLength = utils.getStringLength(str)
+        // let n = Math.ceil(strLength / wholeWidth) // 行数
+        // console.log(n)
+        const insertText = []
+        for (let i = 0; i < str.length; i++) {
+          let strLength = ''
+          while (utils.getStringLength(strLength) < wholeWidth) {
+            strLength += str[i]
+            if (str[i] === '\n') {
+              i++
+              break
+            }
+            if (i === str.length - 1) break
+            i++
+          }
+          insertText.push(strLength)
+        }
+        const newText = Object.assign([], textList)
+        newText.splice(line, changeLine, ...insertText)
+        setTextList(newText)
       }
       caret.current.style.left = parseFloat(left) + width + 'px'
       if (value !== '\n') {
@@ -105,11 +130,9 @@ export default function Write() { // conclusion: keyEvent 事件一定先于 onC
             style.top = parseFloat(window.getComputedStyle(caret.current).top) - 20.8 + 'px'
             style.left = width + 'px'
             const text = textList[line - 1]
-            console.log(text)
             if (text.length === 0 || text[text.length - 1] !== '\n') setX(text.length)
             else {
               setX(text.length - 1)
-              console.log('xxx')
             }
             setLine(line - 1)
             textList.splice(line, 1)
@@ -195,9 +218,6 @@ export default function Write() { // conclusion: keyEvent 事件一定先于 onC
         }
       }
       if (key[event.key]) key[event.key]()
-      setTimeout(() => {
-        console.log(X)
-      }, 0);
     },
     onCompositionEnd() { // 中文输入法结束后
       stop = false
