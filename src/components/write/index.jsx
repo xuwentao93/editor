@@ -22,6 +22,7 @@ export default function Write() { // conclusion: keyEvent 事件一定先于 onC
   const caret = useRef() // textarea 和 caret 的父节点.
   const getLength = useRef() // 输入删除文本的长度的一个节点.
   const write = useRef() // 编辑框.
+  const textListContainer = useRef() // 所有文本父节点.
 
   const utils = {
     getStringLength(str) { // 获取文本在实际页面中的长度.
@@ -40,7 +41,7 @@ export default function Write() { // conclusion: keyEvent 事件一定先于 onC
   }
 
   const methods = {
-    toggleCursorState() { // 进入编辑器显示光标
+    toggleCursorState(event) { // 进入编辑器显示光标
       console.log(textList)
       if (showCursorController) {
         setShowCursor(true)
@@ -50,6 +51,49 @@ export default function Write() { // conclusion: keyEvent 事件一定先于 onC
         // setShowCursor 必须写成函数形式, 否则无法实时更新!
         textarea.current.focus()
       }
+      const height = parseFloat(window.getComputedStyle(textListContainer.current).height)
+      const clientX = event.clientX - 30
+      const clientY = event.clientY - 100
+      const { style } = caret.current
+      if (clientY > height) {
+        setLine(textList.length - 1)
+        setX(textList[textList.length - 1].length)
+        style.top = height - 20.8 + 'px'
+        style.left = utils.getStringLength(textList[textList.length - 1]) + 'px'
+      } else if (clientY < 0) {
+        setLine(0)
+        setX(0)
+        style.top = '0'
+        style.left = '0'
+      } else {
+        const getLine = Math.round(clientY / 20.8)
+        setLine(getLine)
+        style.top = getLine * 20.8 + 'px'
+        if (clientX < 0) {
+          setX(0)
+          style.left = '0'
+        } else if (clientX > utils.getStringLength(textList[getLine])) {
+          setX(textList[getLine].length)
+          style.left = utils.getStringLength(textList[getLine]) + 'px'
+        } else {
+          let str = ''
+          console.log(123123123)
+          for (let i = 0; i < textList[getLine].length; i++) {
+            str += textList[getLine][i]
+            if (utils.getStringLength(str) >= clientX) {
+              const minSize = Math.min(utils.getStringLength(str) - clientX, clientX - utils.getStringLength(str.slice(0, -1)))
+              if (minSize > utils.getStringLength(str)) {
+                setX(i)
+                style.left = utils.getStringLength(str)
+              }
+              else {
+                setX(i - 1)
+                style.left = utils.getStringLength(str.slice(0, -1))
+              }
+            }
+          }
+        }
+      }
     },
     leaveWrite() { // 离开页面光标消失.
       setShowCursor(false)
@@ -58,7 +102,7 @@ export default function Write() { // conclusion: keyEvent 事件一定先于 onC
       clearInterval(cursorInterval)
     },
     getText() {
-      const value = textarea.current.value
+      const { value } = textarea.current
       if (stop) {
         if (N === 0) {
           N = 1
@@ -73,7 +117,7 @@ export default function Write() { // conclusion: keyEvent 事件一定先于 onC
         // utils.caretHorizontalMove(X + 1)
         return
       }
-      const left = window.getComputedStyle(caret.current).left
+      const { left } = window.getComputedStyle(caret.current)
       const width = utils.getStringLength(value) // 字符串在页面的长度.
       const textWidth = utils.getStringLength(textList[line]) // 当前行的长度.
       const wholeWidth = parseFloat(window.getComputedStyle(write.current).width) - 61 // 编辑框宽度
@@ -82,6 +126,7 @@ export default function Write() { // conclusion: keyEvent 事件一定先于 onC
         let str = textList[line].slice(0, X) + value + textList[line].slice(X)
         let changeLine = 1
         if (textList[line][textList[line].length - 1] !== '\n') {
+          console.log(1)
           for (let i = line + 1; i < textList.length; i++) {
             str += textList[i]
             changeLine++
@@ -89,7 +134,6 @@ export default function Write() { // conclusion: keyEvent 事件一定先于 onC
           }
         }
         const insertText = []
-        console.log(str.length)
         for (let i = 0; i <= str.length; true) {
           let strLength = ''
           while (utils.getStringLength(strLength + str[i]) < wholeWidth && i !== str.length) {
@@ -99,12 +143,10 @@ export default function Write() { // conclusion: keyEvent 事件一定先于 onC
               break
             }
             i++
-            console.log(i)
           }
           insertText.push(strLength)
           if (i === str.length) break
         }
-        console.log(insertText)
         const newText = Object.assign([], textList)
         newText.splice(line, changeLine, ...insertText)
         setTextList(newText)
@@ -122,7 +164,16 @@ export default function Write() { // conclusion: keyEvent 事件一定先于 onC
         style.left = utils.getStringLength(xStr) + 'px'
         textarea.current.value = ''
         return
-      }
+      } 
+      // else if ([value][0].includes('↵')) {
+      //   console.log(1111)
+      //   setLine(line + 1)
+      //   setX(X + 1)
+      //   const style = caret.current
+      //   style.top = parseFloat(window.getComputedStyle(caret.current).top) + 20.8 + 'px'
+      //   style.left = '0'
+      //   return
+      // }
       caret.current.style.left = parseFloat(left) + width + 'px'
       if (value !== '\n') {
         const newText = Object.assign([], textList)
@@ -244,7 +295,7 @@ export default function Write() { // conclusion: keyEvent 事件一定先于 onC
     }
   }
   return (
-    <div className="write" onClick={methods.toggleCursorState} ref={write}>
+    <div className="write" onClick={(event) => methods.toggleCursorState(event)} ref={write}>
       <div className="caret" ref={caret}>
         <textarea
           className="writing"
@@ -256,7 +307,7 @@ export default function Write() { // conclusion: keyEvent 事件一定先于 onC
           onKeyDown={methods.keyEvent} />
         { showCursor ? <div className="cursor" /> : undefined }
       </div>
-      <div className="text-list">
+      <div className="text-list" ref={textListContainer}>
         {
           textList.map((text, index) => (
             // eslint-disable-next-line react/no-array-index-key
