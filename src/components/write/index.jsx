@@ -75,7 +75,6 @@ export default function Write() { // conclusion: keyEvent 事件一定先于 onC
       }
       const left = window.getComputedStyle(caret.current).left
       const width = utils.getStringLength(value) // 字符串在页面的长度.
-      console.log(value)
       const textWidth = utils.getStringLength(textList[line]) // 当前行的长度.
       const wholeWidth = parseFloat(window.getComputedStyle(write.current).width) - 61 // 编辑框宽度
       if (width + textWidth > wholeWidth) { // 处理文本溢出.
@@ -90,20 +89,22 @@ export default function Write() { // conclusion: keyEvent 事件一定先于 onC
           }
         }
         const insertText = []
-        for (let i = 0; i < str.length; i++) {
+        console.log(str.length)
+        for (let i = 0; i <= str.length; true) {
           let strLength = ''
-          while (utils.getStringLength(strLength) < wholeWidth) {
-            console.log(i)
+          while (utils.getStringLength(strLength + str[i]) < wholeWidth && i !== str.length) {
             strLength += str[i]
             if (str[i] === '\n') {
               i++
               break
             }
-            if (i === str.length - 1) break
-            if (utils.getStringLength(strLength) < wholeWidth) i++
+            i++
+            console.log(i)
           }
           insertText.push(strLength)
+          if (i === str.length) break
         }
+        console.log(insertText)
         const newText = Object.assign([], textList)
         newText.splice(line, changeLine, ...insertText)
         setTextList(newText)
@@ -114,7 +115,6 @@ export default function Write() { // conclusion: keyEvent 事件一定先于 onC
           if (utils.getStringLength(xStr) > getXWidth) break
           xStr += newText[line + getLineWidth][i]
         }
-        console.log(xStr)
         setLine(line + getLineWidth)
         setX(xStr.length)
         const { style } = caret.current
