@@ -51,6 +51,8 @@ export default function Write() { // conclusion: keyEvent 事件一定先于 onC
         // setShowCursor 必须写成函数形式, 否则无法实时更新!
         textarea.current.focus()
       }
+
+      // 点击到页面后光标跳转至对应的地方.
       const height = parseFloat(window.getComputedStyle(textListContainer.current).height)
       const clientX = event.clientX - 30
       const clientY = event.clientY - 100
@@ -77,19 +79,18 @@ export default function Write() { // conclusion: keyEvent 事件一定先于 onC
           style.left = utils.getStringLength(textList[getLine]) + 'px'
         } else {
           let str = ''
-          console.log(123123123)
           for (let i = 0; i < textList[getLine].length; i++) {
             str += textList[getLine][i]
             if (utils.getStringLength(str) >= clientX) {
-              const minSize = Math.min(utils.getStringLength(str) - clientX, clientX - utils.getStringLength(str.slice(0, -1)))
-              if (minSize > utils.getStringLength(str)) {
-                setX(i)
-                style.left = utils.getStringLength(str)
+              if (utils.getStringLength(str) - clientX < clientX - utils.getStringLength(str.slice(0, -1))) {
+                setX(i + 1)
+                style.left = utils.getStringLength(str) + 'px'
               }
               else {
-                setX(i - 1)
-                style.left = utils.getStringLength(str.slice(0, -1))
+                setX(i)
+                style.left = utils.getStringLength(str.slice(0, -1)) + 'px'
               }
+              return
             }
           }
         }
@@ -104,25 +105,25 @@ export default function Write() { // conclusion: keyEvent 事件一定先于 onC
     getText() {
       const { value } = textarea.current
       if (stop) {
-        if (N === 0) {
-          N = 1
-          prevText = textList[line].slice(0, X)
-          endText = textList[line].slice(X)
-          staticX = X
-        }
-        const newText = Object.assign([], textList)
-        newText[line] = prevText + value + endText
-        setTextList(newText)
-        setX(staticX + value.length)
-        // utils.caretHorizontalMove(X + 1)
         return
+        // if (N === 0) {
+        //   N = 1
+        //   prevText = textList[line].slice(0, X)
+        //   endText = textList[line].slice(X)
+        //   staticX = X
+        // }
+        // const newText = Object.assign([], textList)
+        // newText[line] = prevText + value + endText
+        // setTextList(newText)
+        // setX(staticX + value.length)
+        // // utils.caretHorizontalMove(X + 1)
+        // return
       }
       const { left } = window.getComputedStyle(caret.current)
       const width = utils.getStringLength(value) // 字符串在页面的长度.
       const textWidth = utils.getStringLength(textList[line]) // 当前行的长度.
       const wholeWidth = parseFloat(window.getComputedStyle(write.current).width) - 61 // 编辑框宽度
       if (width + textWidth > wholeWidth) { // 处理文本溢出.
-        console.log('text overflow')
         let str = textList[line].slice(0, X) + value + textList[line].slice(X)
         let changeLine = 1
         if (textList[line][textList[line].length - 1] !== '\n') {
@@ -335,8 +336,8 @@ export default function Write() { // conclusion: keyEvent 事件一定先于 onC
     },
     onCompositionEnd() { // 中文输入法结束后
       stop = false
-      textarea.current.value = ''
-      // methods.getText()
+      // textarea.current.value = ''
+      methods.getText()
     }
   }
   return (
