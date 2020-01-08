@@ -66,7 +66,7 @@ export default function Write() { // conclusion: keyEvent 事件一定先于 onC
         style.top = '0'
         style.left = '0'
       } else {
-        const getLine = Math.round(clientY / 20.8)
+        const getLine = Math.min(Math.round(clientY / 20.8), textList.length - 1)
         setLine(getLine)
         style.top = getLine * 20.8 + 'px'
         if (clientX < 0) {
@@ -190,12 +190,12 @@ export default function Write() { // conclusion: keyEvent 事件一定先于 onC
       clearInterval(timer)
       setShowCursor(true)
       timer = setInterval(() => setShowCursor(prevCursor => !prevCursor), 500)
+      const { style } = caret.current
       const key = {
         Backspace() {
           // console.log(X)
           if (X === 0) {
             if (line === 0) return
-            const { style } = caret.current
             const width = utils.getStringLength(textList[line - 1])
             style.top = parseFloat(window.getComputedStyle(caret.current).top) - 20.8 + 'px'
             style.left = width + 'px'
@@ -227,22 +227,68 @@ export default function Write() { // conclusion: keyEvent 事件一定先于 onC
           setTextList(newText)
           setLine(line + 1)
           setX(0)
-          const { style } = caret.current
           style.left = '0'
           style.top = parseFloat(window.getComputedStyle(caret.current).top) + 20.8 + 'px'
         },
         ArrowLeft() {
-          if (X === 0) return
+          if (event.metaKey && !event.ctrlKey) {
+            if (X === 0) return
+            setX(0)
+            style.left = '0'
+            return
+          } else if (event.altKey && !event.metaKey) {
+            if (X === 0) return
+            let horizontalSite = X
+            console.log('entered')
+            while (textList[line][horizontalSite - 1] === ' ') horizontalSite--
+            const letter = /^[a-zA-Z0-9]$/
+            while(letter.test(textList[line][horizontalSite - 1])) horizontalSite--
+            if (horizontalSite === X) horizontalSite--
+            setX(horizontalSite)
+            style.left = parseFloat(utils.getStringLength(textList[line].slice(0, horizontalSite))) + 'px'
+            return
+          }
+          if (X === 0) {
+            if (line === 0) return
+            setX(textList[line - 1].length)
+            style.left = parseFloat(utils.getStringLength(textList[line - 1])) + 'px'
+            setLine(line - 1)
+            style.top = parseFloat(window.getComputedStyle(caret.current).top) - 20.8 + 'px'
+            return
+          }
           utils.caretHorizontalMove(X, false)
           setX(X - 1)
         },
         ArrowRight() {
-          if (X === textList[line].length || textList[line][X] === '\n') return
+          if (event.metaKey && !event.ctrlKey) {
+            if (X === textList[line].length) return
+            setX(textList[line].length)
+            style.left = utils.getStringLength(textList[line]) + 'px'
+            return
+          } else if (event.altKey && !event.metaKey) {
+            if (X === textList[line].length) return
+            let horizontalSite = X
+            console.log('entered')
+            while (textList[line][horizontalSite + 1] === ' ') horizontalSite++
+            const letter = /^[a-zA-Z0-9]$/
+            while(letter.test(textList[line][horizontalSite + 1])) horizontalSite++
+            horizontalSite++
+            setX(horizontalSite)
+            style.left = parseFloat(utils.getStringLength(textList[line].slice(0, horizontalSite))) + 'px'
+            return
+          }
+          if (X === textList[line].length) {
+            if (line === textList.length - 1) return
+            setX(0)
+            style.left = '0'
+            setLine(line + 1)
+            style.top = parseFloat(window.getComputedStyle(caret.current).top) + 20.8 + 'px'
+            return
+          }
           utils.caretHorizontalMove(X + 1)
           setX(X + 1)
         },
         ArrowUp() {
-          const { style } = caret.current
           if (line === 0) {
             style.left = '0'
             setX(0)
@@ -264,7 +310,6 @@ export default function Write() { // conclusion: keyEvent 事件一定先于 onC
           }
         },
         ArrowDown() {
-          const { style } = caret.current
           if (line === textList.length - 1) {
             style.left = utils.getStringLength(textList[line]) + 'px'
             setX(textList[line].length)
@@ -284,7 +329,7 @@ export default function Write() { // conclusion: keyEvent 事件一定先于 onC
             style.left = utils.getStringLength(textList[line + 1].slice(0, X)) + 'px'
             setLine(line + 1)
           }
-        }
+        },
       }
       if (key[event.key]) key[event.key]()
     },
