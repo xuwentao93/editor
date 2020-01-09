@@ -4,11 +4,7 @@ import './index.css'
 let stop = false // 中文输入的情况下让文本框的内容正确外弹. 放在函数内部每次渲染的时候都会重置
 // 为false, 用于 state 的时候会有延迟性.
 let timer = null // 光标显影的定时器.
-let staticX = 0
-let prevText = ''
-let endText = ''
-// let staticLeft = 0
-let N = 0
+// let chineseInput = true // 是否刚开始中文输入
 
 export default function Write() { // conclusion: keyEvent 事件一定先于 onCange 事件.
   const [showCursor, setShowCursor] = useState(false) // 光标的显隐.
@@ -17,6 +13,7 @@ export default function Write() { // conclusion: keyEvent 事件一定先于 onC
   const [textList, setTextList] = useState(['']) // 储存文本内容的数组.
   const [line, setLine] = useState(0) // 光标的行数
   const [X, setX] = useState(0) // 光标, 输入框位置
+  // const [chineseText, setChineseText] = useState(null)
 
   const textarea = useRef() // texaarea
   const caret = useRef() // textarea 和 caret 的父节点.
@@ -37,19 +34,31 @@ export default function Write() { // conclusion: keyEvent 事件一定先于 onC
       const { style } = caret.current
       if (ifAdd) style.left = parseFloat(left) + width + 'px'
       else style.left = parseFloat(left) - width + 'px'
+    },
+    setCaretLeft(x) {
+      caret.current.style.left = utils.getStringLength(textList[line].slice(0, x)) + 'px'
+    },
+    setCaretTop(number) {
+      caret.current.style.top = (line + number) * 20.8 + 'px'
     }
   }
 
   const methods = {
-    toggleCursorState(event) { // 进入编辑器显示光标
+    editorMousedown(event) {
+      textarea.current.focus()
+      setShowCursor(false)
+    },
+    editorMouseup(event) { // 进入编辑器显示光标
       console.log(textList)
+      const selection = document.getSelection()
       if (showCursorController) {
         setShowCursor(true)
         setShowCursorController(false)
         timer = setInterval(() => setShowCursor(prevCursor => !prevCursor), 500)
         setCursorInterval(timer)
         // setShowCursor 必须写成函数形式, 否则无法实时更新!
-        textarea.current.focus()
+        console.log(selection)
+        if (selection.isCollapsed) textarea.current.focus()
       }
 
       // 点击到页面后光标跳转至对应的地方.
@@ -102,23 +111,26 @@ export default function Write() { // conclusion: keyEvent 事件一定先于 onC
       clearInterval(timer)
       clearInterval(cursorInterval)
     },
-    getText() {
+    getText(event) { // ------------------------------------- getText -------------------------------------
       const { value } = textarea.current
       if (stop) {
-        return
-        // if (N === 0) {
-        //   N = 1
-        //   prevText = textList[line].slice(0, X)
-        //   endText = textList[line].slice(X)
-        //   staticX = X
+        // if (chineseInput) {
+        //   chineseInput = false
+        //   const prevChineseTest = Object.assign([], textList)
+        //   setChineseText(prevChineseTest)
         // }
         // const newText = Object.assign([], textList)
-        // newText[line] = prevText + value + endText
+        // if (event.key === 'backspace') {
+        //   console.log(1)
+        //   newText[line] = newText[line].slice(0, -1)
+        // } else {
+        //   console.log(event)
+        //   newText[line] += value.slice(-1)
+        // }
         // setTextList(newText)
-        // setX(staticX + value.length)
-        // // utils.caretHorizontalMove(X + 1)
-        // return
+        return
       }
+      // chineseInput = true
       const { left } = window.getComputedStyle(caret.current)
       const width = utils.getStringLength(value) // 字符串在页面的长度.
       const textWidth = utils.getStringLength(textList[line]) // 当前行的长度.
@@ -127,7 +139,6 @@ export default function Write() { // conclusion: keyEvent 事件一定先于 onC
         let str = textList[line].slice(0, X) + value + textList[line].slice(X)
         let changeLine = 1
         if (textList[line][textList[line].length - 1] !== '\n') {
-          console.log(1)
           for (let i = line + 1; i < textList.length; i++) {
             str += textList[i]
             changeLine++
@@ -184,7 +195,6 @@ export default function Write() { // conclusion: keyEvent 事件一定先于 onC
         setTextList(newText)
       }
       textarea.current.value = ''
-      N = 0
     },
     keyEvent(event) {
       if (stop) return
@@ -228,8 +238,9 @@ export default function Write() { // conclusion: keyEvent 事件一定先于 onC
           setTextList(newText)
           setLine(line + 1)
           setX(0)
-          style.left = '0'
-          style.top = parseFloat(window.getComputedStyle(caret.current).top) + 20.8 + 'px'
+          console.log(X)
+          utils.setCaretTop(1)
+          utils.setCaretLeft(0)
         },
         ArrowLeft() {
           if (event.metaKey && !event.ctrlKey) {
@@ -240,7 +251,6 @@ export default function Write() { // conclusion: keyEvent 事件一定先于 onC
           } else if (event.altKey && !event.metaKey) {
             if (X === 0) return
             let horizontalSite = X
-            console.log('entered')
             while (textList[line][horizontalSite - 1] === ' ') horizontalSite--
             const letter = /^[a-zA-Z0-9]$/
             while(letter.test(textList[line][horizontalSite - 1])) horizontalSite--
@@ -269,11 +279,10 @@ export default function Write() { // conclusion: keyEvent 事件一定先于 onC
           } else if (event.altKey && !event.metaKey) {
             if (X === textList[line].length) return
             let horizontalSite = X
-            console.log('entered')
-            while (textList[line][horizontalSite + 1] === ' ') horizontalSite++
+            while (textList[line][horizontalSite] === ' ') horizontalSite++
             const letter = /^[a-zA-Z0-9]$/
-            while(letter.test(textList[line][horizontalSite + 1])) horizontalSite++
-            horizontalSite++
+            while(letter.test(textList[line][horizontalSite])) horizontalSite++
+            if (X === horizontalSite) horizontalSite++
             setX(horizontalSite)
             style.left = parseFloat(utils.getStringLength(textList[line].slice(0, horizontalSite))) + 'px'
             return
@@ -336,12 +345,22 @@ export default function Write() { // conclusion: keyEvent 事件一定先于 onC
     },
     onCompositionEnd() { // 中文输入法结束后
       stop = false
+      // console.log(chineseText)
+      // while (textList.length > chineseText.length) textList.pop()
+      // chineseText.forEach((text, index) => {
+      //   textList[index] = text
+      // })
       // textarea.current.value = ''
       methods.getText()
     }
   }
   return (
-    <div className="write" onClick={(event) => methods.toggleCursorState(event)} ref={write}>
+    <div
+      ref={write}
+      className="write"
+      onMouseUp={(event) => methods.editorMouseup(event)}
+      onMouseDown={(event) => methods.editorMousedown(event)}
+    >
       <div className="caret" ref={caret}>
         <textarea
           className="writing"
