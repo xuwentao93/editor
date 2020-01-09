@@ -112,7 +112,7 @@ export default function Write() { // conclusion: keyEvent 事件一定先于 onC
       clearInterval(cursorInterval)
     },
     getText(event) { // ------------------------------------- getText -------------------------------------
-      const { value } = textarea.current
+      let { value } = textarea.current
       if (stop) {
         // if (chineseInput) {
         //   chineseInput = false
@@ -131,6 +131,7 @@ export default function Write() { // conclusion: keyEvent 事件一定先于 onC
         return
       }
       // chineseInput = true
+      if (value[value.length - 1] === '\n') value = value.slice(0, -1)
       const { left } = window.getComputedStyle(caret.current)
       const width = utils.getStringLength(value) // 字符串在页面的长度.
       const textWidth = utils.getStringLength(textList[line]) // 当前行的长度.
@@ -176,16 +177,7 @@ export default function Write() { // conclusion: keyEvent 事件一定先于 onC
         style.left = utils.getStringLength(xStr) + 'px'
         textarea.current.value = ''
         return
-      } 
-      // else if ([value][0].includes('↵')) {
-      //   console.log(1111)
-      //   setLine(line + 1)
-      //   setX(X + 1)
-      //   const style = caret.current
-      //   style.top = parseFloat(window.getComputedStyle(caret.current).top) + 20.8 + 'px'
-      //   style.left = '0'
-      //   return
-      // }
+      }
       caret.current.style.left = parseFloat(left) + width + 'px'
       if (value !== '\n') {
         const newText = Object.assign([], textList)
@@ -204,8 +196,72 @@ export default function Write() { // conclusion: keyEvent 事件一定先于 onC
       const { style } = caret.current
       const key = {
         Backspace() {
+          if (event.metaKey && !event.ctrlKey) {
+            if (X === 0) return
+            const newText = Object.assign([], textList)
+            newText[line] = newText[line].slice(X)
+            setTextList(newText)
+            setX(0)
+            style.left = '0'
+            return
+          } else if (event.altKey && !event.metaKey) {
+            if (X === 0) return
+            let horizontalSite = X
+            while (textList[line][horizontalSite - 1] === ' ') horizontalSite--
+            const letter = /^[a-zA-Z0-9]$/
+            while(letter.test(textList[line][horizontalSite - 1])) horizontalSite--
+            if (horizontalSite === X) horizontalSite--
+            const newText = Object.assign([], textList)
+            newText[line] = newText[line].slice(0, horizontalSite) + newText[line].slice(X)
+            setTextList(newText)
+            setX(horizontalSite)
+            style.left = parseFloat(utils.getStringLength(textList[line].slice(0, horizontalSite))) + 'px'
+            return
+          }
           // console.log(X)
           if (X === 0) {
+            if (line === 0) return
+            const width = utils.getStringLength(textList[line - 1])
+            style.top = parseFloat(window.getComputedStyle(caret.current).top) - 20.8 + 'px'
+            style.left = width + 'px'
+            const text = textList[line - 1]
+            if (text.length === 0 || text[text.length - 1] !== '\n') setX(text.length)
+            else {
+              setX(text.length - 1)
+            }
+            setLine(line - 1)
+            textList.splice(line, 1)
+            return
+          }
+          const newText = Object.assign([], textList)
+          utils.caretHorizontalMove(X, false)
+          newText[line] = newText[line].slice(0, X - 1) + newText[line].slice(X)
+          // console.log(newText)
+          setTextList(newText)
+          setX(X - 1)
+        },
+        Delete() {
+          if (event.metaKey && !event.ctrlKey) {
+            if (X === textList[line].length) return
+            const newText = Object.assign([], textList)
+            newText[line] = newText[line].slice(0, X)
+            setTextList(newText)
+            return
+          } else if (event.altKey && !event.metaKey) {
+            if (X === textList[line].length) return
+            let horizontalSite = X
+            while (textList[line][horizontalSite] === ' ') horizontalSite++
+            const letter = /^[a-zA-Z0-9]$/
+            while(letter.test(textList[line][horizontalSite])) horizontalSite++
+            if (X === horizontalSite) horizontalSite++
+            const newText = Object.assign([], textList)
+            newText[line] = newText[line].slice(0, X) +
+            newText[line].slice(horizontalSite, newText[line].length)
+            setTextList(newText)
+            return
+          }
+          // console.log(X)
+          if (X === textList[line].length) {
             if (line === 0) return
             const width = utils.getStringLength(textList[line - 1])
             style.top = parseFloat(window.getComputedStyle(caret.current).top) - 20.8 + 'px'
