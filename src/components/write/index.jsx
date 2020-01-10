@@ -12,23 +12,29 @@ export default function Write() { // conclusion: keyEvent 事件一定先于 onC
   const [cursorInterval, setCursorInterval] = useState(null) // 光标显隐的定时器。
   const [textList, setTextList] = useState(['']) // 储存文本内容的数组.
   const [line, setLine] = useState(0) // 光标的行数
-  const [X, setX] = useState(0) // 光标, 输入框位置
+  const [X, setX] = useState(0) // cu, 输入框位置
   // const [chineseText, setChineseText] = useState(null)
 
   const textarea = useRef() // texaarea
-  const caret = useRef() // textarea 和 caret 的父节点.
+  const caret = useRef() // textarea and caret parent node.
   const getLength = useRef() // 输入删除文本的长度的一个节点.
-  const write = useRef() // 编辑框.
-  const textListContainer = useRef() // 所有文本父节点.
+  const write = useRef() // editor.
+  const textListContainer = useRef() // whole text parent node.
 
   const utils = {
-    getStringLength(str) { // 获取文本在实际页面中的长度.
+    getStringLength(str) { // get string width in page.
       getLength.current.innerHTML = str
-      const width = window.getComputedStyle(getLength.current).width
+      const { width } = window.getComputedStyle(getLength.current)
       getLength.current.innerHTML = ''
       return parseFloat(width)
     },
-    caretHorizontalMove(x = X, ifAdd = true) { // 设置光标左右的位置.
+    getStringHeight(str) {
+      getLength.current.innerHTML = str
+      const { height } = window.getComputedStyle(getLength.current)
+      getLength.current.innerHTML = ''
+      return parseFloat(height)
+    },
+    caretHorizontalMove(x = X, ifAdd = true) { // set caret horizontal site.
       const width = utils.getStringLength(textList[line][x - 1])
       const left = window.getComputedStyle(caret.current).left
       const { style } = caret.current
@@ -39,7 +45,7 @@ export default function Write() { // conclusion: keyEvent 事件一定先于 onC
       caret.current.style.left = utils.getStringLength(textList[line].slice(0, x)) + 'px'
     },
     setCaretTop(number) {
-      caret.current.style.top = (line + number) * 20.8 + 'px'
+      caret.current.style.top = (line + number) * 22 + 'px'
     }
   }
 
@@ -48,7 +54,7 @@ export default function Write() { // conclusion: keyEvent 事件一定先于 onC
       textarea.current.focus()
       setShowCursor(false)
     },
-    editorMouseup(event) { // 进入编辑器显示光标
+    editorMouseup(event) { // enter editor to show caret
       console.log(textList)
       const selection = document.getSelection()
       if (showCursorController) {
@@ -56,12 +62,12 @@ export default function Write() { // conclusion: keyEvent 事件一定先于 onC
         setShowCursorController(false)
         timer = setInterval(() => setShowCursor(prevCursor => !prevCursor), 500)
         setCursorInterval(timer)
-        // setShowCursor 必须写成函数形式, 否则无法实时更新!
+        // setShowCursor Must be wiriten by function! otherwise you can't update instantly!
         console.log(selection)
         if (selection.isCollapsed) textarea.current.focus()
       }
 
-      // 点击到页面后光标跳转至对应的地方.
+      // click to check cursor position.
       const height = parseFloat(window.getComputedStyle(textListContainer.current).height)
       const clientX = event.clientX - 30
       const clientY = event.clientY - 100
@@ -69,7 +75,7 @@ export default function Write() { // conclusion: keyEvent 事件一定先于 onC
       if (clientY > height) {
         setLine(textList.length - 1)
         setX(textList[textList.length - 1].length)
-        style.top = height - 20.8 + 'px'
+        style.top = height - 22 + 'px'
         style.left = utils.getStringLength(textList[textList.length - 1]) + 'px'
       } else if (clientY < 0) {
         setLine(0)
@@ -77,9 +83,9 @@ export default function Write() { // conclusion: keyEvent 事件一定先于 onC
         style.top = '0'
         style.left = '0'
       } else {
-        const getLine = Math.min(Math.round(clientY / 20.8), textList.length - 1)
+        const getLine = Math.min(Math.round(clientY / 22), textList.length - 1)
         setLine(getLine)
-        style.top = getLine * 20.8 + 'px'
+        style.top = getLine * 22 + 'px'
         if (clientX < 0) {
           setX(0)
           style.left = '0'
@@ -133,13 +139,16 @@ export default function Write() { // conclusion: keyEvent 事件一定先于 onC
       // chineseInput = true
       if (value[value.length - 1] === '\n') value = value.slice(0, -1)
       const { left } = window.getComputedStyle(caret.current)
-      const width = utils.getStringLength(value) // 字符串在页面的长度.
-      const textWidth = utils.getStringLength(textList[line]) // 当前行的长度.
-      const wholeWidth = parseFloat(window.getComputedStyle(write.current).width) - 61 // 编辑框宽度
-      if (width + textWidth > wholeWidth) { // 处理文本溢出.
-        let str = textList[line].slice(0, X) + value + textList[line].slice(X)
+      const width = utils.getStringLength(value) // input string width in page.
+      const textWidth = utils.getStringLength(textList[line]) // current line width.
+      const wholeWidth = parseFloat(window.getComputedStyle(write.current).width) - 61 // editor width
+      const height = parseFloat(utils.getStringHeight(value))
+      if (width + textWidth > wholeWidth || height > 22) { // deal with text overflow.
+        console.log('text overflow')
+        const current = textList[line]
+        let str = current.slice(0, X) + value + current.slice(X) // str is current line insert value.
         let changeLine = 1
-        if (textList[line][textList[line].length - 1] !== '\n') {
+        if (current[current.length - 1] !== '\n') {
           for (let i = line + 1; i < textList.length; i++) {
             str += textList[i]
             changeLine++
@@ -147,33 +156,58 @@ export default function Write() { // conclusion: keyEvent 事件一定先于 onC
           }
         }
         const insertText = []
-        for (let i = 0; i <= str.length; true) {
+        for (let i = 0; i <= str.length; true) { // use binary search to optimize performance.
           let strLength = ''
-          while (utils.getStringLength(strLength + str[i]) < wholeWidth && i !== str.length) {
-            strLength += str[i]
-            if (str[i] === '\n') {
-              i++
-              break
+          let prev = i
+          let end = str.length - 1
+          let mid = Math.floor((prev + end) / 2)
+          while (end >= prev) {
+            if (utils.getStringLength(str.slice(i, mid)) < wholeWidth
+            && utils.getStringLength(str.slice(i, mid + 1)) < wholeWidth
+            && utils.getStringHeight(str.slice(i, mid)) < 24) {
+              prev = mid + 1
+              mid = Math.floor((prev + end) / 2)
+            } else if (utils.getStringLength(str.slice(i, mid)) > wholeWidth
+            && utils.getStringLength(str.slice(i, mid + 1)) > wholeWidth) {
+              end = mid - 1
+              mid = Math.floor((prev + end) / 2)
+            } else {
+              if (str.slice(i, mid).indexOf('\n') !== -1) {
+                const point = str.slice(i, mid).indexOf('\n') + i + 1
+                strLength = str.slice(i, point)
+                i = point
+                break
+              } else {
+                strLength = str.slice(i, mid)
+                i = mid
+                break
+              }
             }
-            i++
+          }
+          if (prev > end || i >= str.length) {
+            insertText.push(str.slice(i))
+            break
           }
           insertText.push(strLength)
-          if (i === str.length) break
         }
         const newText = Object.assign([], textList)
         newText.splice(line, changeLine, ...insertText)
         setTextList(newText)
-        const getLineWidth = Math.floor(utils.getStringLength(textList[line].slice(0, X) + value) / wholeWidth)
-        const getXWidth = Math.floor(utils.getStringLength(textList[line].slice(0, X) + value) % wholeWidth)
+        console.log(value.length)
+        const getLineWidth = Math.floor(utils.getStringLength(textList[line].slice(0, X)
+          + utils.getStringLength(value)) / wholeWidth)
+        const getXWidth = Math.floor(utils.getStringLength(textList[line].slice(0, X)
+          + utils.getStringLength(value)) % wholeWidth)
         let xStr = ''
         for (let i = 0; i < newText[line + getLineWidth].length; i++) {
           if (utils.getStringLength(xStr) > getXWidth) break
           xStr += newText[line + getLineWidth][i]
         }
         setLine(line + getLineWidth)
+        console.log(getLineWidth)
         setX(xStr.length)
         const { style } = caret.current
-        style.top = parseFloat(window.getComputedStyle(caret.current).top) + 20.8 * getLineWidth + 'px'
+        style.top = parseFloat(window.getComputedStyle(caret.current).top) + 22 * getLineWidth + 'px'
         style.left = utils.getStringLength(xStr) + 'px'
         textarea.current.value = ''
         return
@@ -222,7 +256,7 @@ export default function Write() { // conclusion: keyEvent 事件一定先于 onC
           if (X === 0) {
             if (line === 0) return
             const width = utils.getStringLength(textList[line - 1])
-            style.top = parseFloat(window.getComputedStyle(caret.current).top) - 20.8 + 'px'
+            style.top = parseFloat(window.getComputedStyle(caret.current).top) - 22 + 'px'
             style.left = width + 'px'
             const text = textList[line - 1]
             if (text.length === 0 || text[text.length - 1] !== '\n') setX(text.length)
@@ -264,7 +298,7 @@ export default function Write() { // conclusion: keyEvent 事件一定先于 onC
           if (X === textList[line].length) {
             if (line === 0) return
             const width = utils.getStringLength(textList[line - 1])
-            style.top = parseFloat(window.getComputedStyle(caret.current).top) - 20.8 + 'px'
+            style.top = parseFloat(window.getComputedStyle(caret.current).top) - 22 + 'px'
             style.left = width + 'px'
             const text = textList[line - 1]
             if (text.length === 0 || text[text.length - 1] !== '\n') setX(text.length)
@@ -320,7 +354,7 @@ export default function Write() { // conclusion: keyEvent 事件一定先于 onC
             setX(textList[line - 1].length)
             style.left = parseFloat(utils.getStringLength(textList[line - 1])) + 'px'
             setLine(line - 1)
-            style.top = parseFloat(window.getComputedStyle(caret.current).top) - 20.8 + 'px'
+            style.top = parseFloat(window.getComputedStyle(caret.current).top) - 22 + 'px'
             return
           }
           utils.caretHorizontalMove(X, false)
@@ -348,7 +382,7 @@ export default function Write() { // conclusion: keyEvent 事件一定先于 onC
             setX(0)
             style.left = '0'
             setLine(line + 1)
-            style.top = parseFloat(window.getComputedStyle(caret.current).top) + 20.8 + 'px'
+            style.top = parseFloat(window.getComputedStyle(caret.current).top) + 22 + 'px'
             return
           }
           utils.caretHorizontalMove(X + 1)
@@ -363,14 +397,14 @@ export default function Write() { // conclusion: keyEvent 事件一定先于 onC
           >
           utils.getStringLength(textList[line - 1])
           || textList[line].slice(0, X).length > textList[line - 1].length) {
-            style.top = parseFloat(window.getComputedStyle(caret.current).top) - 20.8 + 'px'
+            style.top = parseFloat(window.getComputedStyle(caret.current).top) - 22 + 'px'
             style.left = utils.getStringLength(textList[line - 1]) + 'px'
             const text = textList[line - 1]
             if (text.length === 0 || text[text.length - 1] !== '\n') setX(text.length)
             else setX(text.length - 1)
             setLine(line - 1)
           } else {
-            style.top = parseFloat(window.getComputedStyle(caret.current).top) - 20.8 + 'px'
+            style.top = parseFloat(window.getComputedStyle(caret.current).top) - 22 + 'px'
             style.left = utils.getStringLength(textList[line - 1].slice(0, X)) + 'px'
             setLine(line - 1)
           }
@@ -384,14 +418,14 @@ export default function Write() { // conclusion: keyEvent 事件一定先于 onC
           >
           utils.getStringLength(textList[line + 1])
           || textList[line].slice(0, X).length > textList[line + 1].length) {
-            style.top = parseFloat(window.getComputedStyle(caret.current).top) + 20.8 + 'px'
+            style.top = parseFloat(window.getComputedStyle(caret.current).top) + 22 + 'px'
             style.left = utils.getStringLength(textList[line + 1]) + 'px'
             const text = textList[line + 1]
             if (text.length === 0 || text[text.length - 1] !== '\n') setX(text.length)
             else setX(text.length - 1)
             setLine(line + 1)
           } else {
-            style.top = parseFloat(window.getComputedStyle(caret.current).top) + 20.8 + 'px'
+            style.top = parseFloat(window.getComputedStyle(caret.current).top) + 22 + 'px'
             style.left = utils.getStringLength(textList[line + 1].slice(0, X)) + 'px'
             setLine(line + 1)
           }
