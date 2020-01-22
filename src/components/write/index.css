@@ -2,6 +2,11 @@
   position: relative;
 }
 
+.write {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
 .writing {
   position: absolute;
   left: 0;
@@ -44,7 +49,7 @@
 
 .get-length {
   display: inline-block;
-  font: 15px Consolas;
+  font: 15px consolas;
   white-space: pre;
   letter-spacing: 1px;
 }
